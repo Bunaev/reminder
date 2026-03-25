@@ -1,0 +1,77 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: reminder-postgres
+    environment:
+      POSTGRES_DB: reminder
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d reminder"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - reminder-network
+
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0.5
+    container_name: reminder-keycloak
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HOSTNAME_PORT: 8080
+      KC_HOSTNAME: localhost
+      KC_HTTP_PORT: 8080
+      KC_HTTP_ENABLED: "true"
+      KC_PROXY: edge
+      KC_HOSTNAME_STRICT: "false"
+      KC_FEATURES: scripts,token-exchange
+      KC_HTTP_RELATIVE_PATH: /
+      TZ: Europe/Moscow
+    command: start-dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./keycloak-themes/mytheme:/opt/keycloak/themes/mytheme
+      - ./keycloak-data-backup:/opt/keycloak/data
+    restart: unless-stopped
+    networks:
+      - reminder-network
+
+
+  app:
+    build: .
+    container_name: reminder-app
+    ports:
+      - "8081:8081"
+    environment:
+      TZ: Europe/Moscow
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/reminder
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_PROFILES_ACTIVE: prod
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_ISSUERURI: http://localhost:8080/realms/Reminder
+      SPRING_SECURITY_OAUTH2_RESOURCESERVER_JWT_JWKSETURI: http://keycloak:8080/realms/Reminder/protocol/openid-connect/certs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      keycloak:
+        condition: service_started
+    restart: unless-stopped
+    networks:
+      - reminder-network
+
+networks:
+  reminder-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  keycloak_data:
