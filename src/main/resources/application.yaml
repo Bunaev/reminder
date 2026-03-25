@@ -1,0 +1,81 @@
+# Сохранил чувствительные данные здесь, чисто для наглядности.
+server:
+  port: 8081
+spring:
+  config:
+    activate:
+      on-profile: prod
+  jpa:
+    show-sql: true
+  datasource:
+    url: jdbc:postgresql://postgres:5432/reminder
+    username: postgres
+    password: postgres
+  application:
+    name: reminder
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+    drop-first: false
+  security:
+
+    oauth2:
+      client:
+        registration:
+          keycloak:
+            client-id: reminder-app
+            client-secret: iUXWLEJiJhVri1aeUgF1SH5B0TJBlOMI
+            scope: openid, profile, email
+            authorization-grant-type: authorization_code
+            redirect-uri: http://localhost:8081/login/oauth2/code/keycloak
+
+
+        provider:
+          keycloak:
+            # Убираем issuer-uri — задаём все endpoints вручную
+            authorization-uri: http://localhost:8080/realms/Reminder/protocol/openid-connect/auth
+            token-uri: http://keycloak:8080/realms/Reminder/protocol/openid-connect/token
+            jwk-set-uri: http://keycloak:8080/realms/Reminder/protocol/openid-connect/certs
+            user-info-uri: http://keycloak:8080/realms/Reminder/protocol/openid-connect/userinfo
+            user-name-attribute: preferred_username
+
+        resource-server:
+          jwt:
+            issuer-uri: http://localhost:8080/realms/Reminder
+            jwk-set-uri: http://keycloak:8080/realms/Reminder/protocol/openid-connect/certs
+  task:
+    execution:
+      pool:
+        core-size: 2
+        max-size: 4
+        queue-capacity: 100
+      thread-name-prefix: "Notification Thread-"
+  mail:
+    host: smtp.mail.ru
+    port: 465
+    username: remindernotification@internet.ru
+    password: 4eduMvHTLk19T2QWYVL9
+    properties:
+      mail:
+        smtp:
+          auth: true
+          ssl:
+            enable: true
+          starttls:
+            enable: false
+          connectiontimeout: 10000
+          timeout: 10000
+          writetimeout: 10000
+
+logging:
+  level:
+    org.springframework.security: DEBUG
+    org.springframework.security.oauth2: DEBUG
+    com.example.keycloakdemo: DEBUG
+
+telegram:
+  bot:
+    token: 7749249132:AAGq_D3DWhuj4WrlDP7DhLNXvtc7IjkqyR4
+    username: remind_important_bot
+
+
